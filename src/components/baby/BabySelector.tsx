@@ -33,7 +33,9 @@ interface BabySelectorProps {
 }
 
 export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProps) {
-  const { babies, currentBaby, setCurrentBaby, loading } = useBabyContext()
+  // ✅ 🔥 正確：用 setCurrentBabyId
+  const { babies, currentBaby, setCurrentBabyId, loading } = useBabyContext()
+
   const { uploadAvatar } = useBabies()
   const { t } = useLanguage()
 
@@ -41,8 +43,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
   const [preview, setPreview] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
 
-  const handleAvatarClick = (e: React.MouseEvent) => {
-    e.stopPropagation() // 🔥 修正：避免干擾 dropdown
+  const handleAvatarClick = () => {
     fileInputRef.current?.click()
   }
 
@@ -105,11 +106,8 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
   return (
     <>
       <div className="flex items-center gap-3">
-        {/* 🖼 Avatar */}
-        <div
-          className="relative group cursor-pointer"
-          onClick={handleAvatarClick}
-        >
+        {/* Avatar */}
+        <div className="relative group">
           <Avatar className="h-10 w-10 border-2 border-white/30">
             {currentBaby?.avatar_url ? (
               <AvatarImage
@@ -126,13 +124,19 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
           </Avatar>
 
           {/* hover icon */}
-          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute inset-0 pointer-events-none rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <Camera className="w-4 h-4 text-white" />
           </div>
 
+          {/* click layer */}
+          <div
+            className="absolute inset-0 cursor-pointer"
+            onClick={handleAvatarClick}
+          />
+
           {/* spinner */}
           {uploading && (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             </div>
           )}
@@ -146,7 +150,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
           />
         </div>
 
-        {/* 👶 Name + dropdown */}
+        {/* Name + dropdown */}
         <div className="flex items-center gap-1">
           <div className="flex flex-col">
             <span className="font-medium text-sm leading-tight text-white">
@@ -171,15 +175,14 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
               </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent
-              align="start"
-              className="w-48 z-[9999]"
-            >
+            <DropdownMenuContent align="start" className="w-48 z-[9999]">
               {babies.map((baby: BabyType) => (
                 <DropdownMenuItem
                   key={baby.id}
-                  onClick={() => setCurrentBaby(baby)}
-                  className={currentBaby?.id === baby.id ? 'bg-accent' : ''}
+                  onClick={() => setCurrentBabyId(baby.id)} // ✅ 🔥 修正
+                  className={`relative z-10 ${
+                    currentBaby?.id === baby.id ? 'bg-accent' : ''
+                  }`}
                 >
                   <Avatar className="h-6 w-6 mr-2">
                     {baby.avatar_url ? (
