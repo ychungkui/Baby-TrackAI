@@ -19,6 +19,7 @@ import { useBabies } from '@/hooks/useBabies'
 function calculateAge(birthDate: string, t: (k: string) => string): string {
   const birth = new Date(birthDate)
   const today = new Date()
+
   const months = differenceInMonths(today, birth)
   const afterMonths = addMonths(birth, months)
   const days = differenceInDays(today, afterMonths)
@@ -33,9 +34,7 @@ interface BabySelectorProps {
 }
 
 export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProps) {
-  // ✅ 🔥 正確：用 setCurrentBabyId
   const { babies, currentBaby, setCurrentBabyId, loading } = useBabyContext()
-
   const { uploadAvatar } = useBabies()
   const { t } = useLanguage()
 
@@ -52,9 +51,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
     if (!file || !currentBaby) return
 
     const reader = new FileReader()
-    reader.onload = () => {
-      setPreview(reader.result as string)
-    }
+    reader.onload = () => setPreview(reader.result as string)
     reader.readAsDataURL(file)
 
     e.target.value = ''
@@ -71,8 +68,8 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
       })
 
       await uploadAvatar(currentBaby.id, file)
-
       setPreview(null)
+
     } catch (err) {
       console.error('❌ Avatar upload failed:', err)
     } finally {
@@ -80,15 +77,17 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
     }
   }
 
+  // 🔄 loading
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-white">
-        <BabyIcon className="w-5 h-5 text-white" />
-        <span className="text-sm text-white">{t('baby.loading')}</span>
+        <BabyIcon className="w-5 h-5" />
+        <span className="text-sm">{t('baby.loading')}</span>
       </div>
     )
   }
 
+  // 🍼 no baby
   if (babies.length === 0) {
     return (
       <Button
@@ -106,29 +105,30 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
   return (
     <>
       <div className="flex items-center gap-3">
-        {/* Avatar */}
+        {/* 🖼 Avatar */}
         <div className="relative group">
           <Avatar className="h-10 w-10 border-2 border-white/30">
             {currentBaby?.avatar_url ? (
               <AvatarImage
                 src={`${currentBaby.avatar_url}?v=${currentBaby.updated_at}`}
-                alt={currentBaby.name}
+                alt={currentBaby.name || 'baby'}
                 className="object-cover"
                 loading="lazy"
               />
             ) : null}
 
+            {/* ✅ fallback 更安全 */}
             <AvatarFallback className="bg-white/20 text-white font-bold text-sm">
-              {currentBaby?.name?.charAt(0) || '?'}
+              {currentBaby?.name?.charAt(0)?.toUpperCase() || '?'}
             </AvatarFallback>
           </Avatar>
 
-          {/* hover icon */}
+          {/* hover icon（不阻擋點擊） */}
           <div className="absolute inset-0 pointer-events-none rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <Camera className="w-4 h-4 text-white" />
           </div>
 
-          {/* click layer */}
+          {/* 點擊層 */}
           <div
             className="absolute inset-0 cursor-pointer"
             onClick={handleAvatarClick}
@@ -150,15 +150,15 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
           />
         </div>
 
-        {/* Name + dropdown */}
+        {/* 👶 Name + dropdown */}
         <div className="flex items-center gap-1">
           <div className="flex flex-col">
-            <span className="font-medium text-sm leading-tight text-white">
-              {currentBaby?.name}
+            <span className="font-medium text-sm text-white">
+              {currentBaby?.name || t('baby.unknown')}
             </span>
 
             {currentBaby?.birth_date && (
-              <span className="text-xs text-white/70 leading-tight">
+              <span className="text-xs text-white/70">
                 {calculateAge(currentBaby.birth_date, t)}
               </span>
             )}
@@ -171,7 +171,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
                 size="icon"
                 className="h-7 w-7 ml-1 text-white hover:bg-white/10"
               >
-                <ChevronDown className="w-4 h-4 text-white" />
+                <ChevronDown className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
 
@@ -179,7 +179,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
               {babies.map((baby: BabyType) => (
                 <DropdownMenuItem
                   key={baby.id}
-                  onClick={() => setCurrentBabyId(baby.id)} // ✅ 🔥 修正
+                  onClick={() => setCurrentBabyId(baby.id)}
                   className={`relative z-10 ${
                     currentBaby?.id === baby.id ? 'bg-accent' : ''
                   }`}
@@ -215,6 +215,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
         </div>
       </div>
 
+      {/* ✂️ Crop Modal */}
       {preview && (
         <AvatarCropModal
           image={preview}
