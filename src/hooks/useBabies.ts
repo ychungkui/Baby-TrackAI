@@ -1,20 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
-import { Baby, AddBabyFormData } from '@/types'
-import { useAuth } from '@/contexts/AuthContext'
-import { useToast } from '@/hooks/use-toast'
-import { useLanguage } from '@/i18n'
+import { useAuth } from '@/hooks/useAuth'
+import { Baby } from '@/types'
+import { useState } from 'react'
+import { toast } from '@/hooks/use-toast'
 
 export function useBabies() {
   const { user } = useAuth()
-  const { toast } = useToast()
-  const { t } = useLanguage()
   const queryClient = useQueryClient()
 
-  // ✅ 讀取 babies
+  // 🔥 UX state
+  const [uploading, setUploading] = useState<string | null>(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
+
+  // 📦 fetch babies
   const { data: babies = [], isLoading: loading, refetch } = useQuery({
     queryKey: ['babies', user?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<Baby[]> => {
       if (!user) return []
 
       const { data, error } = await supabase
@@ -24,15 +26,15 @@ export function useBabies() {
         .order('created_at', { ascending: true })
 
       if (error) throw error
-      return data as Baby[]
+      return data || []
     },
     enabled: !!user,
   })
 
-  // ✅ 新增 baby
+  // ➕ add baby
   const addBabyMutation = useMutation({
-    mutationFn: async (formData: AddBabyFormData) => {
-      if (!user) throw new Error(t('toast.not_logged_in'))
+    mutationFn: async (formData: Partial<Baby>) => {
+      if (!user) throw new Error('Not logged in')
 
       const { data, error } = await supabase
         .from('babies')
@@ -49,15 +51,15 @@ export function useBabies() {
       return data as Baby
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['babies'] })
+      queryClient.invalidateQueries({ queryKey: ['babies', user?.id] })
       toast({
-        title: t('toast.success'),
-        description: t('toast.baby_added'),
+        title: 'Success',
+        description: 'Baby added',
       })
     },
   })
 
-  // 🔥 ✅ 更新 baby（加 user_id 保護）
+  // ✏️ update baby
   const updateBabyMutation = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Baby> & { id: string }) => {
       if (!user) throw new Error('Not logged in')
@@ -66,7 +68,7 @@ export function useBabies() {
         .from('babies')
         .update(updates)
         .eq('id', id)
-        .eq('user_id', user.id) // 🔥 關鍵：避免打錯 row
+        .eq('user_id', user.id)
         .select()
         .single()
 
@@ -74,133 +76,105 @@ export function useBabies() {
       return data as Baby
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['babies'] })
+      queryClient.invalidateQueries({ queryKey: ['babies', user?.id] })
     },
   })
 
-  // ✅ 刪除 baby
+  // ❌ delete baby
   const deleteBabyMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!user) throw new Error('Not logged in')
+
       const { error } = await supabase
         .from('babies')
         .delete()
         .eq('id', id)
+        .eq('user_id', user.id)
 
       if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['babies'] })
+      queryClient.invalidateQueries({ queryKey: ['babies', user?.id] })
     },
   })
 
-  // 🔥 壓縮 avatar
+  // 🖼️ compress image（簡單版）
   const compressAvatar = async (file: File): Promise<File> => {
-    return new Promise((resolve) => {
-      const img = new Image()
-      const reader = new FileReader()
-
-      reader.onload = (e) => {
-        img.src = e.target?.result as string
-      }
-
-      img.onload = () => {
-        const MAX_SIZE = 512
-        let width = img.width
-        let height = img.height
-
-        if (width > height) {
-          if (width > MAX_SIZE) {
-            height *= MAX_SIZE / width
-            width = MAX_SIZE
-          }
-        } else {
-          if (height > MAX_SIZE) {
-            width *= MAX_SIZE / height
-            height = MAX_SIZE
-          }
-        }
-
-        const canvas = document.createElement('canvas')
-        canvas.width = width
-        canvas.height = height
-
-        const ctx = canvas.getContext('2d')
-        ctx?.drawImage(img, 0, 0, width, height)
-
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) return resolve(file)
-
-            resolve(
-              new File([blob], 'avatar.jpg', {
-                type: 'image/jpeg',
-              })
-            )
-          },
-          'image/jpeg',
-          0.7
-        )
-      }
-
-      reader.readAsDataURL(file)
-    })
+    return file // 先不壓縮（穩定優先）
   }
 
-  // 🔥🔥🔥 最終版 Avatar 上傳（完全防錯）
+  // 🚀 upload avatar（最終版）
   const uploadAvatar = async (babyId: string, file: File) => {
+    if (!user) throw new Error('No user')
+
+    setUploading(babyId)
+    setUploadProgress(0)
+
     try {
-      if (!user) throw new Error('Not logged in')
+      const compressed = await compressAvatar(file)
 
-      const finalFile = await compressAvatar(file)
+      const prevBaby = babies.find(b => b.id === babyId)
+      const prevUrl = prevBaby?.avatar_url || null
 
-      const filePath = `${user.id}/${babyId}/avatar.jpg`
+      const fileExt = compressed.name.split('.').pop()
+      const filePath = `${user.id}/${babyId}/${crypto.randomUUID()}.${fileExt}`
 
-      // 🧹 可選：先刪（避免 cache 問題）
-      await supabase.storage
-        .from('baby-avatars')
-        .remove([filePath])
+      // fake progress
+      const interval = setInterval(() => {
+        setUploadProgress(p => (p < 90 ? p + 10 : p))
+      }, 200)
 
-      // 📤 上傳
       const { error: uploadError } = await supabase.storage
         .from('baby-avatars')
-        .upload(filePath, finalFile, {
-          upsert: true,
-          contentType: 'image/jpeg',
-        })
+        .upload(filePath, compressed, { upsert: true })
+
+      clearInterval(interval)
 
       if (uploadError) throw uploadError
 
-      // ✅ 永久 URL（唯一正解）
+      setUploadProgress(100)
+
       const { data } = supabase.storage
         .from('baby-avatars')
         .getPublicUrl(filePath)
 
-      const avatarUrl = data.publicUrl
+      const newUrl = data.publicUrl
 
-      console.log('🔥 FINAL avatarUrl:', avatarUrl)
+      // ⚡ optimistic update
+      queryClient.setQueryData(['babies', user?.id], (old: Baby[] | undefined) => {
+        if (!old) return old
+        return old.map(b =>
+          b.id === babyId ? { ...b, avatar_url: newUrl } : b
+        )
+      })
 
-      // 🔥 DB update（雙條件）
       const { error: updateError } = await supabase
         .from('babies')
-        .update({ avatar_url: avatarUrl })
+        .update({ avatar_url: newUrl })
         .eq('id', babyId)
         .eq('user_id', user.id)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        await queryClient.invalidateQueries({ queryKey: ['babies', user?.id] })
+        throw updateError
+      }
 
-      queryClient.invalidateQueries({ queryKey: ['babies'] })
+      // 🧹 delete old
+      if (prevUrl && prevUrl.includes('/baby-avatars/')) {
+        try {
+          const path = prevUrl.split('/baby-avatars/')[1]
+          if (path) {
+            await supabase.storage.from('baby-avatars').remove([path])
+          }
+        } catch {}
+      }
 
-      return avatarUrl
-    } catch (err: any) {
-      console.error('🔥 Avatar upload error:', err)
-
-      toast({
-        title: t('toast.upload_failed'),
-        description: err.message,
-        variant: 'destructive',
-      })
-
-      throw err
+      return newUrl
+    } finally {
+      setTimeout(() => {
+        setUploading(null)
+        setUploadProgress(0)
+      }, 500)
     }
   }
 
@@ -212,8 +186,7 @@ export function useBabies() {
     updateBaby: updateBabyMutation.mutateAsync,
     deleteBaby: deleteBabyMutation.mutateAsync,
     uploadAvatar,
-    isAdding: addBabyMutation.isPending,
-    isUpdating: updateBabyMutation.isPending,
-    isDeleting: deleteBabyMutation.isPending,
+    uploading,
+    uploadProgress,
   }
 }

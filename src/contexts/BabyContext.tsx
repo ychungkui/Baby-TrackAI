@@ -1,11 +1,11 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react'
 import { Baby } from '@/types'
 import { useBabies } from '@/hooks/useBabies'
 
 interface BabyContextType {
   babies: Baby[]
   currentBaby: Baby | null
-  setCurrentBaby: (baby: Baby | null) => void
+  setCurrentBabyId: (id: string | null) => void
   loading: boolean
   refetch: () => void
 }
@@ -14,42 +14,34 @@ const BabyContext = createContext<BabyContextType | undefined>(undefined)
 
 export function BabyProvider({ children }: { children: ReactNode }) {
   const { babies, loading, refetch } = useBabies()
-  const [currentBaby, setCurrentBaby] = useState<Baby | null>(null)
 
-  // ✅ 初始選擇 baby（只在第一次）
+  const [currentBabyId, setCurrentBabyId] = useState<string | null>(null)
+
+  // ✅ 初始化 currentBabyId（只做一次）
   useEffect(() => {
-    if (!loading && babies.length > 0 && !currentBaby) {
-      const savedBabyId = localStorage.getItem('currentBabyId')
-      const savedBaby = babies.find(b => b.id === savedBabyId)
-      setCurrentBaby(savedBaby || babies[0])
+    if (!loading && babies.length > 0 && !currentBabyId) {
+      const savedId = localStorage.getItem('currentBabyId')
+      const valid = babies.find(b => b.id === savedId)
+
+      const id = valid ? valid.id : babies[0].id
+
+      setCurrentBabyId(id)
+      localStorage.setItem('currentBabyId', id)
     }
-  }, [babies, loading, currentBaby])
+  }, [babies, loading, currentBabyId])
 
-  // 🔥🔥🔥 關鍵修復：同步最新 baby（解決 avatar 不更新）
-  useEffect(() => {
-    if (!currentBaby) return
+  // 🔥 核心：永遠從 babies 推導 currentBaby
+  const currentBaby = useMemo(() => {
+    if (!currentBabyId) return null
+    return babies.find(b => b.id === currentBabyId) || null
+  }, [babies, currentBabyId])
 
-    const updated = babies.find(b => b.id === currentBaby.id)
+  // ✅ setter（只改 id）
+  const handleSetCurrentBabyId = (id: string | null) => {
+    setCurrentBabyId(id)
 
-    // 👉 只有當資料真的變了才更新（避免無限 loop）
-    if (
-      updated &&
-      (
-        updated.avatar_url !== currentBaby.avatar_url ||
-        updated.name !== currentBaby.name ||
-        updated.birth_date !== currentBaby.birth_date
-      )
-    ) {
-      setCurrentBaby(updated)
-    }
-  }, [babies, currentBaby])
-
-  // ✅ 設定 currentBaby 並存 localStorage
-  const handleSetCurrentBaby = (baby: Baby | null) => {
-    setCurrentBaby(baby)
-
-    if (baby) {
-      localStorage.setItem('currentBabyId', baby.id)
+    if (id) {
+      localStorage.setItem('currentBabyId', id)
     } else {
       localStorage.removeItem('currentBabyId')
     }
@@ -60,7 +52,7 @@ export function BabyProvider({ children }: { children: ReactNode }) {
       value={{
         babies,
         currentBaby,
-        setCurrentBaby: handleSetCurrentBaby,
+        setCurrentBabyId: handleSetCurrentBabyId,
         loading,
         refetch,
       }}
@@ -73,8 +65,8 @@ export function BabyProvider({ children }: { children: ReactNode }) {
 export function useBabyContext() {
   const context = useContext(BabyContext)
 
-  if (context === undefined) {
-    throw new Error('useBabyContext must be used within a BabyProvider')
+  if (!context) {
+    throw new Error('useBabyContext must be used within BabyProvider')
   }
 
   return context

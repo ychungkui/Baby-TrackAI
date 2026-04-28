@@ -14,7 +14,7 @@ import { Baby as BabyType } from '@/types'
 import { differenceInMonths, differenceInDays, addMonths } from 'date-fns'
 import { useLanguage } from '@/i18n'
 import AvatarCropModal from '@/components/AvatarCropModal'
-import { supabase } from '@/integrations/supabase/client'
+import { useBabies } from '@/hooks/useBabies'
 
 function calculateAge(birthDate: string, t: (k: string) => string): string {
   const birth = new Date(birthDate)
@@ -22,6 +22,7 @@ function calculateAge(birthDate: string, t: (k: string) => string): string {
   const months = differenceInMonths(today, birth)
   const afterMonths = addMonths(birth, months)
   const days = differenceInDays(today, afterMonths)
+
   if (months === 0) return `${days}${t('baby.days')}`
   return `${months}${t('baby.months')}${days}${t('baby.days')}`
 }
@@ -33,6 +34,7 @@ interface BabySelectorProps {
 
 export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProps) {
   const { babies, currentBaby, setCurrentBaby, loading } = useBabyContext()
+  const { uploadAvatar, uploading, uploadProgress } = useBabies()
   const { t } = useLanguage()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -53,7 +55,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
     e.target.value = ''
   }
 
-  // 🔥 最穩版本
+  // ✅ 改成統一用 useBabies
   const handleCropConfirm = async (blob: Blob) => {
     if (!currentBaby) return
 
@@ -62,66 +64,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
         type: 'image/jpeg',
       })
 
-      // ✅ 拿 auth user（關鍵）
-      const { data: authData } = await supabase.auth.getUser()
-      const user = authData.user
-
-      if (!user) {
-        console.error('❌ No auth user')
-        return
-      }
-
-      console.log('🔥 currentBaby.id:', currentBaby.id)
-      console.log('🔥 user.id:', user.id)
-
-      const filePath = `${user.id}/${currentBaby.id}/avatar.jpg`
-
-      // 🧹 刪舊圖
-      await supabase.storage
-        .from('baby-avatars')
-        .remove([filePath])
-
-      // 📤 上傳
-      const { error: uploadError } = await supabase.storage
-        .from('baby-avatars')
-        .upload(filePath, file, {
-          upsert: true,
-        })
-
-      if (uploadError) throw uploadError
-
-      // 🌐 URL
-      const { data } = supabase.storage
-        .from('baby-avatars')
-        .getPublicUrl(filePath)
-
-      const publicUrl = data.publicUrl
-
-      console.log('🔥 publicUrl:', publicUrl)
-
-      // 🔥🔥🔥 核心：雙條件 update（100% 命中）
-      const { data: updated, error: updateError } = await supabase
-        .from('babies')
-        .update({ avatar_url: publicUrl })
-        .eq('id', currentBaby.id)
-        .eq('user_id', user.id)
-        .select()
-
-      console.log('🔥 updated:', updated)
-      console.log('🔥 updateError:', updateError)
-
-      if (updateError) throw updateError
-
-      if (!updated || updated.length === 0) {
-        console.error('❌ No row updated (id mismatch or RLS)')
-        return
-      }
-
-      // ⚡ UI 更新
-      setCurrentBaby({
-        ...currentBaby,
-        avatar_url: publicUrl,
-      })
+      await uploadAvatar(currentBaby.id, file)
 
       setPreview(null)
     } catch (err) {
@@ -155,8 +98,13 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
   return (
     <>
       <div className="flex items-center gap-3">
+        {/* 🔥 Avatar（已加 UX） */}
         <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
-          <Avatar className="h-10 w-10 border-2 border-white/30">
+          <Avatar
+            className={`h-10 w-10 border-2 border-white/30 transition-all duration-300 ${
+              uploading === currentBaby?.id ? 'opacity-50 scale-95' : ''
+            }`}
+          >
             {currentBaby?.avatar_url ? (
               <AvatarImage
                 src={`${currentBaby.avatar_url}?t=${Date.now()}`}
@@ -170,9 +118,27 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
             </AvatarFallback>
           </Avatar>
 
+          {/* hover icon */}
           <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <Camera className="w-4 h-4 text-white" />
           </div>
+
+          {/* spinner */}
+          {uploading === currentBaby?.id && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+
+          {/* progress */}
+          {uploading === currentBaby?.id && (
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-200">
+              <div
+                className="h-1 bg-blue-500 transition-all"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          )}
 
           <input
             ref={fileInputRef}
@@ -183,6 +149,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
           />
         </div>
 
+        {/* 👶 Name + dropdown */}
         <div className="flex items-center gap-1">
           <div className="flex flex-col">
             <span className="font-medium text-sm leading-tight text-white">
