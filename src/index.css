@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Baby TrackAI Design System
+   - 夜間模式優先，低刺激視覺
+   - 主色：沉穩藍
+   - 背景：深灰（夜間）/ 淺灰（日間）
+   - 提醒色：柔和橘黃
+   All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Light mode - 柔和藍灰底色 */
+    --background: 215 25% 96%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* 主色：沉穩藍 */
+    --primary: 217 71% 45%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 20% 94%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 20% 94%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 210 20% 94%;
+    --accent-foreground: 222 47% 11%;
+
+    /* 提醒色：柔和橘黃 */
+    --warning: 35 92% 60%;
+    --warning-foreground: 35 92% 15%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 71% 45%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar tokens */
+    --sidebar-background: 210 20% 96%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 217 71% 45%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 210 20% 94%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 217 71% 45%;
+
+    /* 記錄類型顏色 */
+    --sleep: 245 58% 51%;
+    --sleep-foreground: 245 58% 95%;
+    --feeding: 142 71% 40%;
+    --feeding-foreground: 142 71% 95%;
+    --night-wake: 280 60% 50%;
+    --night-wake-foreground: 280 60% 95%;
+    --diaper: 199 89% 48%;
+    --diaper-foreground: 199 89% 95%;
+
+    /* 新增記錄類型顏色 */
+    --bath: 180 60% 45%;
+    --bath-foreground: 180 60% 95%;
+    --potty: 30 50% 40%;
+    --potty-foreground: 30 50% 95%;
+    --water: 210 80% 55%;
+    --water-foreground: 210 80% 95%;
+    --solid-food: 25 90% 55%;
+    --solid-food-foreground: 25 90% 95%;
+  }
+
+  .dark {
+    /* Dark mode - 優先模式，適合夜間使用 */
+    --background: 222 47% 8%;
+    --foreground: 210 40% 96%;
+
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 96%;
+
+    /* 主色：沉穩藍（亮度調整適合深色背景） */
+    --primary: 217 71% 53%;
+    --primary-foreground: 222 47% 8%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 96%;
+
+    /* 提醒色：柔和橘黃 */
+    --warning: 35 92% 55%;
+    --warning-foreground: 35 92% 10%;
+
+    --destructive: 0 63% 40%;
+    --destructive-foreground: 210 40% 96%;
+
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 217 71% 53%;
+
+    /* Sidebar tokens */
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 217 71% 53%;
+    --sidebar-primary-foreground: 222 47% 8%;
+    --sidebar-accent: 217 33% 15%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 217 33% 20%;
+    --sidebar-ring: 217 71% 53%;
+
+    /* 記錄類型顏色（深色模式調整） */
+    --sleep: 245 58% 60%;
+    --sleep-foreground: 245 20% 10%;
+    --feeding: 142 71% 50%;
+    --feeding-foreground: 142 20% 10%;
+    --night-wake: 280 60% 60%;
+    --night-wake-foreground: 280 20% 10%;
+    --diaper: 199 89% 55%;
+    --diaper-foreground: 199 20% 10%;
+
+    /* 新增記錄類型顏色（深色模式） */
+    --bath: 180 60% 55%;
+    --bath-foreground: 180 20% 10%;
+    --potty: 30 50% 50%;
+    --potty-foreground: 30 20% 10%;
+    --water: 210 80% 60%;
+    --water-foreground: 210 20% 10%;
+    --solid-food: 25 90% 60%;
+    --solid-food-foreground: 25 20% 10%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* 確保易讀性的字體間距 */
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
+  }
+
+  p, span, label {
+    @apply leading-relaxed;
+  }
+}
+
+/* 預設啟用深色模式 */
+:root {
+  color-scheme: dark;
+}
+ 
+ /* Safe area for bottom navigation on notched devices */
+ .safe-area-bottom {
+   padding-bottom: env(safe-area-inset-bottom, 0px);
+ }

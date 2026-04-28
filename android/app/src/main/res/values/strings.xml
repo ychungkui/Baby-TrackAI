@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Baby TrackAI</string>
+    <string name="title_activity_main">Baby TrackAI</string>
+    <string name="package_name">com.coreai.babytrackai</string>
+    <string name="custom_url_scheme">com.coreai.babytrackai</string>
+</resources>
