@@ -1,91 +1,144 @@
-import { useRef, useState } from 'react';
-import { Baby as BabyIcon, ChevronDown, Plus, Camera } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useRef, useState } from 'react'
+import { Baby as BabyIcon, ChevronDown, Plus, Camera } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { useBabyContext } from '@/contexts/BabyContext';
-import { useBabies } from '@/hooks/useBabies';
-import { Baby as BabyType } from '@/types';
-import { differenceInMonths, differenceInDays, addMonths } from 'date-fns';
-import { useLanguage } from '@/i18n';
-import AvatarCropModal from '@/components/AvatarCropModal';
+} from '@/components/ui/dropdown-menu'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { useBabyContext } from '@/contexts/BabyContext'
+import { Baby as BabyType } from '@/types'
+import { differenceInMonths, differenceInDays, addMonths } from 'date-fns'
+import { useLanguage } from '@/i18n'
+import AvatarCropModal from '@/components/AvatarCropModal'
+import { supabase } from '@/lib/supabase'
 
 function calculateAge(birthDate: string, t: (k: string) => string): string {
-  const birth = new Date(birthDate);
-  const today = new Date();
-  const months = differenceInMonths(today, birth);
-  const afterMonths = addMonths(birth, months);
-  const days = differenceInDays(today, afterMonths);
-  if (months === 0) return `${days}${t('baby.days')}`;
-  return `${months}${t('baby.months')}${days}${t('baby.days')}`;
+  const birth = new Date(birthDate)
+  const today = new Date()
+  const months = differenceInMonths(today, birth)
+  const afterMonths = addMonths(birth, months)
+  const days = differenceInDays(today, afterMonths)
+  if (months === 0) return `${days}${t('baby.days')}`
+  return `${months}${t('baby.months')}${days}${t('baby.days')}`
 }
 
 interface BabySelectorProps {
-  onAddBaby: () => void;
-  showAddBaby?: boolean;
+  onAddBaby: () => void
+  showAddBaby?: boolean
 }
 
 export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProps) {
-  const { babies, currentBaby, setCurrentBaby, loading } = useBabyContext();
-  const { uploadAvatar } = useBabies();
-  const { t } = useLanguage();
+  const { babies, currentBaby, setCurrentBaby, loading } = useBabyContext()
+  const { t } = useLanguage()
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [preview, setPreview] = useState<string | null>(null)
 
-  const handleAvatarClick = () => fileInputRef.current?.click();
+  const handleAvatarClick = () => fileInputRef.current?.click()
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentBaby) return;
+    const file = e.target.files?.[0]
+    if (!file || !currentBaby) return
 
-    const reader = new FileReader();
+    const reader = new FileReader()
     reader.onload = () => {
-      setPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+      setPreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
 
-    e.target.value = '';
-  };
+    e.target.value = ''
+  }
 
-  // 🔥 核心修正：upload 後即時更新 UI
+  // 🔥 最穩版本
   const handleCropConfirm = async (blob: Blob) => {
-    if (!currentBaby) return;
-
-    const file = new File([blob], 'avatar.jpg', {
-      type: 'image/jpeg',
-    });
+    if (!currentBaby) return
 
     try {
-      const newUrl = await uploadAvatar(currentBaby.id, file);
+      const file = new File([blob], 'avatar.jpg', {
+        type: 'image/jpeg',
+      })
 
-      // ✅ 立即更新 currentBaby（關鍵）
+      // ✅ 拿 auth user（關鍵）
+      const { data: authData } = await supabase.auth.getUser()
+      const user = authData.user
+
+      if (!user) {
+        console.error('❌ No auth user')
+        return
+      }
+
+      console.log('🔥 currentBaby.id:', currentBaby.id)
+      console.log('🔥 user.id:', user.id)
+
+      const filePath = `${user.id}/${currentBaby.id}/avatar.jpg`
+
+      // 🧹 刪舊圖
+      await supabase.storage
+        .from('baby-avatars')
+        .remove([filePath])
+
+      // 📤 上傳
+      const { error: uploadError } = await supabase.storage
+        .from('baby-avatars')
+        .upload(filePath, file, {
+          upsert: true,
+        })
+
+      if (uploadError) throw uploadError
+
+      // 🌐 URL
+      const { data } = supabase.storage
+        .from('baby-avatars')
+        .getPublicUrl(filePath)
+
+      const publicUrl = data.publicUrl
+
+      console.log('🔥 publicUrl:', publicUrl)
+
+      // 🔥🔥🔥 核心：雙條件 update（100% 命中）
+      const { data: updated, error: updateError } = await supabase
+        .from('babies')
+        .update({ avatar_url: publicUrl })
+        .eq('id', currentBaby.id)
+        .eq('user_id', user.id)
+        .select()
+
+      console.log('🔥 updated:', updated)
+      console.log('🔥 updateError:', updateError)
+
+      if (updateError) throw updateError
+
+      if (!updated || updated.length === 0) {
+        console.error('❌ No row updated (id mismatch or RLS)')
+        return
+      }
+
+      // ⚡ UI 更新
       setCurrentBaby({
         ...currentBaby,
-        avatar_url: newUrl,
-      });
+        avatar_url: publicUrl,
+      })
 
-      setPreview(null);
+      setPreview(null)
     } catch (err) {
-      console.error('Avatar upload failed', err);
+      console.error('❌ Avatar upload failed:', err)
     }
-  };
+  }
 
-  if (loading)
+  if (loading) {
     return (
       <div className="flex items-center gap-2 text-white">
         <BabyIcon className="w-5 h-5 text-white" />
         <span className="text-sm text-white">{t('baby.loading')}</span>
       </div>
-    );
+    )
+  }
 
-  if (babies.length === 0)
+  if (babies.length === 0) {
     return (
       <Button
         variant="ghost"
@@ -96,17 +149,17 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
         <Plus className="w-4 h-4" />
         {t('baby.add_new')}
       </Button>
-    );
+    )
+  }
 
   return (
     <>
       <div className="flex items-center gap-3">
-        {/* 👶 Avatar */}
         <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
           <Avatar className="h-10 w-10 border-2 border-white/30">
             {currentBaby?.avatar_url ? (
               <AvatarImage
-                src={currentBaby.avatar_url}
+                src={`${currentBaby.avatar_url}?t=${Date.now()}`}
                 alt={currentBaby.name}
                 className="object-cover"
               />
@@ -130,7 +183,6 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
           />
         </div>
 
-        {/* 👶 Info */}
         <div className="flex items-center gap-1">
           <div className="flex flex-col">
             <span className="font-medium text-sm leading-tight text-white">
@@ -189,7 +241,6 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
         </div>
       </div>
 
-      {/* 🔥 Crop Modal */}
       {preview && (
         <AvatarCropModal
           image={preview}
@@ -198,5 +249,5 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
         />
       )}
     </>
-  );
+  )
 }
