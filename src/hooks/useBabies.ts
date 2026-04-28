@@ -2,16 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { Baby } from '@/types'
-import { useState } from 'react'
 import { toast } from '@/hooks/use-toast'
 
 export function useBabies() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
-
-  // 🔥 UX state
-  const [uploading, setUploading] = useState<string | null>(null)
-  const [uploadProgress, setUploadProgress] = useState(0)
 
   // 📦 fetch babies
   const { data: babies = [], isLoading: loading, refetch } = useQuery({
@@ -98,84 +93,37 @@ export function useBabies() {
     },
   })
 
-  // 🖼️ compress image（簡單版）
-  const compressAvatar = async (file: File): Promise<File> => {
-    return file // 先不壓縮（穩定優先）
-  }
-
-  // 🚀 upload avatar（最終版）
+  // 🚀 upload avatar（穩定版）
   const uploadAvatar = async (babyId: string, file: File) => {
     if (!user) throw new Error('No user')
 
-    setUploading(babyId)
-    setUploadProgress(0)
+    const fileExt = file.name.split('.').pop()
+    const filePath = `${user.id}/${babyId}/${Date.now()}.${fileExt}`
 
-    try {
-      const compressed = await compressAvatar(file)
+    const { error: uploadError } = await supabase.storage
+      .from('baby-avatars')
+      .upload(filePath, file)
 
-      const prevBaby = babies.find(b => b.id === babyId)
-      const prevUrl = prevBaby?.avatar_url || null
+    if (uploadError) throw uploadError
 
-      const fileExt = compressed.name.split('.').pop()
-      const filePath = `${user.id}/${babyId}/${crypto.randomUUID()}.${fileExt}`
+    const { data } = supabase.storage
+      .from('baby-avatars')
+      .getPublicUrl(filePath)
 
-      // fake progress
-      const interval = setInterval(() => {
-        setUploadProgress(p => (p < 90 ? p + 10 : p))
-      }, 200)
+    const publicUrl = data.publicUrl
 
-      const { error: uploadError } = await supabase.storage
-        .from('baby-avatars')
-        .upload(filePath, compressed, { upsert: true })
+    const { error: updateError } = await supabase
+      .from('babies')
+      .update({ avatar_url: publicUrl })
+      .eq('id', babyId)
+      .eq('user_id', user.id)
 
-      clearInterval(interval)
+    if (updateError) throw updateError
 
-      if (uploadError) throw uploadError
+    // 🔄 refresh（唯一更新點）
+    await queryClient.invalidateQueries({ queryKey: ['babies', user?.id] })
 
-      setUploadProgress(100)
-
-      const { data } = supabase.storage
-        .from('baby-avatars')
-        .getPublicUrl(filePath)
-
-      const newUrl = data.publicUrl
-
-      // ⚡ optimistic update
-      queryClient.setQueryData(['babies', user?.id], (old: Baby[] | undefined) => {
-        if (!old) return old
-        return old.map(b =>
-          b.id === babyId ? { ...b, avatar_url: newUrl } : b
-        )
-      })
-
-      const { error: updateError } = await supabase
-        .from('babies')
-        .update({ avatar_url: newUrl })
-        .eq('id', babyId)
-        .eq('user_id', user.id)
-
-      if (updateError) {
-        await queryClient.invalidateQueries({ queryKey: ['babies', user?.id] })
-        throw updateError
-      }
-
-      // 🧹 delete old
-      if (prevUrl && prevUrl.includes('/baby-avatars/')) {
-        try {
-          const path = prevUrl.split('/baby-avatars/')[1]
-          if (path) {
-            await supabase.storage.from('baby-avatars').remove([path])
-          }
-        } catch {}
-      }
-
-      return newUrl
-    } finally {
-      setTimeout(() => {
-        setUploading(null)
-        setUploadProgress(0)
-      }, 500)
-    }
+    return publicUrl
   }
 
   return {
@@ -186,7 +134,5 @@ export function useBabies() {
     updateBaby: updateBabyMutation.mutateAsync,
     deleteBaby: deleteBabyMutation.mutateAsync,
     uploadAvatar,
-    uploading,
-    uploadProgress,
   }
 }

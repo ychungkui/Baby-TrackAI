@@ -34,11 +34,12 @@ interface BabySelectorProps {
 
 export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProps) {
   const { babies, currentBaby, setCurrentBaby, loading } = useBabyContext()
-  const { uploadAvatar, uploading, uploadProgress } = useBabies()
+  const { uploadAvatar } = useBabies()
   const { t } = useLanguage()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false) // ✅ 輕量 state
 
   const handleAvatarClick = () => fileInputRef.current?.click()
 
@@ -55,11 +56,12 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
     e.target.value = ''
   }
 
-  // ✅ 改成統一用 useBabies
   const handleCropConfirm = async (blob: Blob) => {
     if (!currentBaby) return
 
     try {
+      setUploading(true)
+
       const file = new File([blob], 'avatar.jpg', {
         type: 'image/jpeg',
       })
@@ -69,6 +71,8 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
       setPreview(null)
     } catch (err) {
       console.error('❌ Avatar upload failed:', err)
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -98,13 +102,9 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
   return (
     <>
       <div className="flex items-center gap-3">
-        {/* 🔥 Avatar（已加 UX） */}
+        {/* 🖼 Avatar（穩定版） */}
         <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
-          <Avatar
-            className={`h-10 w-10 border-2 border-white/30 transition-all duration-300 ${
-              uploading === currentBaby?.id ? 'opacity-50 scale-95' : ''
-            }`}
-          >
+          <Avatar className="h-10 w-10 border-2 border-white/30">
             {currentBaby?.avatar_url ? (
               <AvatarImage
                 src={`${currentBaby.avatar_url}?t=${Date.now()}`}
@@ -118,25 +118,15 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
             </AvatarFallback>
           </Avatar>
 
-          {/* hover icon */}
+          {/* hover camera */}
           <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <Camera className="w-4 h-4 text-white" />
           </div>
 
-          {/* spinner */}
-          {uploading === currentBaby?.id && (
+          {/* ✅ 輕量 spinner（不卡） */}
+          {uploading && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            </div>
-          )}
-
-          {/* progress */}
-          {uploading === currentBaby?.id && (
-            <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-200">
-              <div
-                className="h-1 bg-blue-500 transition-all"
-                style={{ width: `${uploadProgress}%` }}
-              />
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 
@@ -149,7 +139,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
           />
         </div>
 
-        {/* 👶 Name + dropdown */}
+        {/* 👶 name + dropdown */}
         <div className="flex items-center gap-1">
           <div className="flex flex-col">
             <span className="font-medium text-sm leading-tight text-white">
@@ -183,7 +173,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
                 >
                   <Avatar className="h-6 w-6 mr-2">
                     {baby.avatar_url ? (
-                      <AvatarImage src={baby.avatar_url} alt={baby.name} />
+                      <AvatarImage src={baby.avatar_url} />
                     ) : null}
 
                     <AvatarFallback className="text-xs bg-primary/10 text-primary">
