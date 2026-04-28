@@ -154,7 +154,19 @@ export function useBabies() {
     }
 
     // ✅ 7. refresh
-    await queryClient.invalidateQueries({ queryKey: ['babies', user?.id] })
+    queryClient.setQueryData(['babies', user?.id], (old: any) => {
+  if (!old) return old
+
+  return old.map((b: any) =>
+    b.id === babyId
+      ? {
+          ...b,
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString(),
+        }
+      : b
+  )
+})
 
     return publicUrl
   }

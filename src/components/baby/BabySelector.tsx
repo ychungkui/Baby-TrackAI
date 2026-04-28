@@ -39,9 +39,12 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<string | null>(null)
-  const [uploading, setUploading] = useState(false) // ✅ 輕量 state
+  const [uploading, setUploading] = useState(false)
 
-  const handleAvatarClick = () => fileInputRef.current?.click()
+  const handleAvatarClick = (e: React.MouseEvent) => {
+    e.stopPropagation() // 🔥 修正：避免干擾 dropdown
+    fileInputRef.current?.click()
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -102,14 +105,18 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
   return (
     <>
       <div className="flex items-center gap-3">
-        {/* 🖼 Avatar（穩定版） */}
-        <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
+        {/* 🖼 Avatar */}
+        <div
+          className="relative group cursor-pointer"
+          onClick={handleAvatarClick}
+        >
           <Avatar className="h-10 w-10 border-2 border-white/30">
             {currentBaby?.avatar_url ? (
               <AvatarImage
                 src={`${currentBaby.avatar_url}?v=${currentBaby.updated_at}`}
                 alt={currentBaby.name}
                 className="object-cover"
+                loading="lazy"
               />
             ) : null}
 
@@ -118,12 +125,12 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
             </AvatarFallback>
           </Avatar>
 
-          {/* hover camera */}
+          {/* hover icon */}
           <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <Camera className="w-4 h-4 text-white" />
           </div>
 
-          {/* ✅ 輕量 spinner（不卡） */}
+          {/* spinner */}
           {uploading && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -139,7 +146,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
           />
         </div>
 
-        {/* 👶 name + dropdown */}
+        {/* 👶 Name + dropdown */}
         <div className="flex items-center gap-1">
           <div className="flex flex-col">
             <span className="font-medium text-sm leading-tight text-white">
@@ -164,7 +171,10 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
               </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuContent
+              align="start"
+              className="w-48 z-[9999]"
+            >
               {babies.map((baby: BabyType) => (
                 <DropdownMenuItem
                   key={baby.id}
@@ -173,13 +183,17 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
                 >
                   <Avatar className="h-6 w-6 mr-2">
                     {baby.avatar_url ? (
-                    <AvatarImage src={`${baby.avatar_url}?v=${baby.updated_at}`} />
+                      <AvatarImage
+                        src={`${baby.avatar_url}?v=${baby.updated_at}`}
+                        loading="lazy"
+                      />
                     ) : null}
 
                     <AvatarFallback className="text-xs bg-primary/10 text-primary">
                       {baby.name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
+
                   {baby.name}
                 </DropdownMenuItem>
               ))}
