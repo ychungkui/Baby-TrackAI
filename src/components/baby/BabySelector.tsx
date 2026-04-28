@@ -107,7 +107,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
           <Avatar className="h-10 w-10 border-2 border-white/30">
             {currentBaby?.avatar_url ? (
               <AvatarImage
-                src={`${currentBaby.avatar_url}?t=${Date.now()}`}
+                src={`${currentBaby.avatar_url}?v=${currentBaby.updated_at}`}
                 alt={currentBaby.name}
                 className="object-cover"
               />
@@ -173,7 +173,7 @@ export function BabySelector({ onAddBaby, showAddBaby = true }: BabySelectorProp
                 >
                   <Avatar className="h-6 w-6 mr-2">
                     {baby.avatar_url ? (
-                      <AvatarImage src={baby.avatar_url} />
+                    <AvatarImage src={`${baby.avatar_url}?v=${baby.updated_at}`} />
                     ) : null}
 
                     <AvatarFallback className="text-xs bg-primary/10 text-primary">

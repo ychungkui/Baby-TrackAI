@@ -93,34 +93,67 @@ export function useBabies() {
     },
   })
 
-  // 🚀 upload avatar（穩定版）
+  // 🚀 upload avatar（🔥最終完整版）
   const uploadAvatar = async (babyId: string, file: File) => {
     if (!user) throw new Error('No user')
 
+    // ✅ 1. 先取得舊 avatar
+    const { data: oldBaby } = await supabase
+      .from('babies')
+      .select('avatar_url')
+      .eq('id', babyId)
+      .single()
+
+    // ✅ 2. 用新檔名（防 cache）
     const fileExt = file.name.split('.').pop()
     const filePath = `${user.id}/${babyId}/${Date.now()}.${fileExt}`
 
+    // ✅ 3. 上傳
     const { error: uploadError } = await supabase.storage
       .from('baby-avatars')
       .upload(filePath, file)
 
     if (uploadError) throw uploadError
 
+    // ✅ 4. 取得 public URL
     const { data } = supabase.storage
       .from('baby-avatars')
       .getPublicUrl(filePath)
 
     const publicUrl = data.publicUrl
 
+    // ✅ 5. 更新 DB
     const { error: updateError } = await supabase
       .from('babies')
-      .update({ avatar_url: publicUrl })
+      .update({
+  avatar_url: publicUrl,
+  updated_at: new Date().toISOString(),
+})
       .eq('id', babyId)
       .eq('user_id', user.id)
 
     if (updateError) throw updateError
 
-    // 🔄 refresh（唯一更新點）
+    // ✅ 6. 刪舊圖（🔥關鍵）
+    if (oldBaby?.avatar_url) {
+      try {
+        const url = new URL(oldBaby.avatar_url)
+
+        const path = decodeURIComponent(
+          url.pathname.split('/object/public/baby-avatars/')[1]
+        )
+
+        if (path) {
+          await supabase.storage
+            .from('baby-avatars')
+            .remove([path])
+        }
+      } catch (err) {
+        console.warn('⚠️ delete old avatar failed:', err)
+      }
+    }
+
+    // ✅ 7. refresh
     await queryClient.invalidateQueries({ queryKey: ['babies', user?.id] })
 
     return publicUrl
