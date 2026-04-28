@@ -14,7 +14,7 @@ import { Baby as BabyType } from '@/types'
 import { differenceInMonths, differenceInDays, addMonths } from 'date-fns'
 import { useLanguage } from '@/i18n'
 import AvatarCropModal from '@/components/AvatarCropModal'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/integrations/supabase/client'
 
 function calculateAge(birthDate: string, t: (k: string) => string): string {
   const birth = new Date(birthDate)
