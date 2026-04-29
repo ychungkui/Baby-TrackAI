@@ -21,7 +21,10 @@ export function SummaryHistoryDialog({ open, onOpenChange, babyId, babyName }: S
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[420px] p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+        <DialogContent
+  onOpenAutoFocus={(e) => e.preventDefault()}
+  className="max-w-[420px] p-4 sm:p-6 max-h-[90vh] overflow-y-auto"
+>
           <DialogHeader><DialogTitle>{t('summary.summary_history')}</DialogTitle></DialogHeader>
           <Calendar mode="single" selected={selectedDate} onSelect={(d) => d && setSelectedDate(d)} className={cn("p-3 pointer-events-auto mx-auto")} modifiers={{ hasSummary: datesWithSummaries }} modifiersStyles={{ hasSummary: { fontWeight: 700, textDecoration: 'underline', textDecorationColor: 'hsl(var(--primary))', textUnderlineOffset: '4px' } }} disabled={(date) => date > new Date()} />
           <div className="mt-2">
