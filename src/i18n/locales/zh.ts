@@ -181,6 +181,9 @@ export const zh = {
   summary: {
     title: '每日摘要',
     today: '今天',
+    empty_title: "AI 宝宝记录",
+empty_subtitle: "智能育儿助手",
+add_baby: "开始记录",
     today_overview: '今日概覽',
     date_overview: '{date} 概覽',
     weekly_trend: '最近 7 天趨勢',
@@ -191,6 +194,10 @@ export const zh = {
   },
   growth: {
     title: '成長記錄',
+    "capture_moment": "記錄寶寶的珍貴時刻",
+    empty_title: "開始記錄寶寶的成長吧 📸",
+empty_desc: "上傳第一張照片，開啟這段美好旅程",
+add_first: "新增第一張照片",
     no_photos: '還沒有成長照片',
     add_hint: '點擊右下角的 + 按鈕來新增',
     add_photo: '新增照片',

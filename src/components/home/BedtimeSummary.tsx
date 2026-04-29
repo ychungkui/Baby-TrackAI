@@ -57,7 +57,7 @@ export function BedtimeSummary({ babyId, babyName }: BedtimeSummaryProps) {
           <div className="space-y-2 text-center">
             <p className="text-sm text-muted-foreground">{t('bedtime.free_used_up')}</p>
             <Button onClick={handleGenerate} className="w-full gap-2 whitespace-normal text-center h-auto py-2" size="lg">
-              <img src={vipBadge} alt="VIP" className="w-4 h-4 flex-shrink-0" />{t('bedtime.upgrade_pro')}
+              <img src={vipBadge} alt="VIP" className="w-6 h-6 flex-shrink-0" />{t('bedtime.upgrade_pro')}
             </Button>
           </div>
         ) : (

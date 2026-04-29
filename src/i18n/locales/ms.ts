@@ -107,9 +107,9 @@ export const ms: TranslationDict = {
     settings: 'Tetapan',
   },
   hero: {
-  title: "Penjejak Bayi AI",
+  title: "AI Rekod Bayi",
   subtitle: "Pembantu Ibu Bapa Pintar",
-  cta: "Mula Sekarang",
+  cta: "Mula Rekod",
 },
   home: {
     welcome: 'Selamat Datang ke Baby TrackAI',
@@ -183,6 +183,9 @@ export const ms: TranslationDict = {
   summary: {
     title: 'Ringkasan Harian',
     today: 'Hari Ini',
+    empty_title: "AI Rekod Bayi",
+empty_subtitle: "Pembantu Ibu Bapa Pintar",
+add_baby: "Mula Rekod",
     today_overview: 'Gambaran Hari Ini',
     date_overview: 'Gambaran {date}',
     weekly_trend: 'Trend 7 Hari Terakhir',
@@ -193,6 +196,10 @@ export const ms: TranslationDict = {
   },
   growth: {
     title: 'Rekod Pertumbuhan',
+    "capture_moment": "Rakam detik berharga bayi anda",
+    empty_title: "Mulakan merakam perkembangan bayi anda 📸",
+empty_desc: "Tambah foto pertama untuk memulakan perjalanan indah ini",
+add_first: "Tambah Foto Pertama",
     no_photos: 'Belum ada foto pertumbuhan',
     add_hint: 'Ketik butang + untuk menambah',
     add_photo: 'Tambah Foto',

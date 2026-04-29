@@ -42,7 +42,7 @@ export function DayStatCards({ records, loading, selectedDate }: DayStatCardsPro
     <div className="grid grid-cols-2 gap-3">
       {items.map(({ label, value, type, colorClass, bgClass }) => (
         <div key={label} className={cn('rounded-lg border border-border p-4', bgClass)}>
-          <div className="flex items-center gap-2 mb-1"><RecordIcon type={type} className={cn('w-6 h-6', colorClass)} /><span className="text-sm text-muted-foreground">{label}</span></div>
+          <div className="flex items-center gap-2 mb-1"><RecordIcon type={type} className={cn('w-10 h-10', colorClass)} /><span className="text-sm text-muted-foreground">{label}</span></div>
           <div className={cn('text-lg font-semibold', colorClass)}>{value}</div>
         </div>
       ))}

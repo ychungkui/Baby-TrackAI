@@ -109,7 +109,7 @@ export const en: TranslationDict = {
  hero: {
   title: "AI Baby Tracker",
   subtitle: "Smart Parenting Assistant",
-  cta: "Start Tracking Now",
+  cta: "Start Tracking",
 },
   home: {
     welcome: 'Welcome to Baby TrackAI',
@@ -183,6 +183,9 @@ export const en: TranslationDict = {
   summary: {
     title: 'Daily Summary',
     today: 'Today',
+     empty_title: 'AI Baby Tracker',
+  empty_subtitle: 'Smart Parenting Assistant',
+  add_baby: 'Start Tracking',
     today_overview: 'Today\'s Overview',
     date_overview: '{date} Overview',
     weekly_trend: 'Last 7 Days Trend',
@@ -192,7 +195,11 @@ export const en: TranslationDict = {
     no_record: 'No record',
   },
   growth: {
+    "capture_moment": "Capture your baby's precious moment",
     title: 'Growth Records',
+     empty_title: "Start capturing your baby's growth 📸",
+  empty_desc: "Add your first photo to begin this beautiful journey",
+  add_first: "Add First Photo",
     no_photos: 'No growth photos yet',
     add_hint: 'Tap the + button to add one',
     add_photo: 'Add Photo',

@@ -191,7 +191,7 @@ export default function Chat() {
               {t('chat.free_used_up')}
             </p>
             <Button size="sm" className="gap-1" onClick={() => navigate('/subscription')}>
-              <img src={vipBadge} alt="VIP" className="w-3.5 h-3.5" />
+              <img src={vipBadge} alt="VIP" className="w-6 h-6" />
               {t('chat.upgrade_pro')}
             </Button>
           </div>

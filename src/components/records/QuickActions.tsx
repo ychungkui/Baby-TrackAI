@@ -33,7 +33,7 @@ export function QuickActions({ onRecord, disabled }: QuickActionsProps) {
           onClick={() => onRecord(type)}
           disabled={disabled}
         >
-          <RecordIcon type={type} className="w-6 h-6" />
+          <RecordIcon type={type} className="w-10 h-10" />
           <span className="text-xs font-medium text-center leading-tight line-clamp-2 whitespace-pre-line">{label}</span>
         </Button>
       ))}

@@ -71,9 +71,9 @@ export function RecordTimeline({ records, onDelete, onEdit, isDeleting, selected
         const time = format(new Date(record.start_time), 'HH:mm');
         return (
           <div key={record.id} className={cn('flex items-center gap-3 p-3 rounded-lg border border-border', config.bgClass)}>
-            <div className={cn('p-2 rounded-full', config.bgClass)}>
-              <RecordIcon type={record.type} className={cn('w-6 h-6', config.colorClass)} />
-            </div>
+            <div className={cn('p-3 rounded-xl shadow-sm', config.bgClass)}>
+  <RecordIcon type={record.type} className={cn('w-8 h-8', config.colorClass)} />
+</div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className={cn('font-medium', config.colorClass)}>{config.label}</span>
