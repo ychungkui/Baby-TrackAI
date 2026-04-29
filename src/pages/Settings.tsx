@@ -25,7 +25,7 @@ import freeBadge from '@/assets/icons/free-badge.png';
 import vipBadge from '@/assets/icons/vip-badge.png';
 import mailIcon from '@/assets/icons/mail.png';
 import languageIcon from '@/assets/icons/language.png';
-import babyIcon from '@/assets/icons/baby.png';
+import babyIcon from '@/assets/icons/baby2.png';
 import aboutIcon from '@/assets/icons/about.png';
 import exitIcon from '@/assets/icons/exit.png';
 import trashIcon from '@/assets/icons/trash.png';

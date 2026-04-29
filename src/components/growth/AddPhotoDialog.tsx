@@ -73,16 +73,31 @@ export function AddPhotoDialog({
         onOpenChange(v)
       }}
     >
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        onOpenAutoFocus={(e) => e.preventDefault()} // 🔥 阻止自动弹键盘
+        className="
+          sm:max-w-md
+          max-h-[80vh]
+          overflow-y-auto
+          p-4
+        "
+      >
         <DialogHeader>
           <DialogTitle>{t('growth.add_photo')}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        {/* 🔥 内容区（防键盘遮挡） */}
+        <div className="space-y-4 pb-28">
 
           {/* 🖼 上傳區 */}
           <div
-            className="border-2 border-dashed border-border rounded-xl flex items-center justify-center cursor-pointer aspect-square overflow-hidden bg-muted/30 hover:border-blue-400 hover:bg-blue-50 transition"
+            className="
+              border-2 border-dashed border-border rounded-xl
+              flex items-center justify-center cursor-pointer
+              aspect-[4/3] sm:aspect-square
+              overflow-hidden bg-muted/30
+              hover:border-blue-400 hover:bg-blue-50 transition
+            "
             onClick={() => inputRef.current?.click()}
           >
             {preview ? (
@@ -121,7 +136,7 @@ export function AddPhotoDialog({
             onChange={handleFileChange}
           />
 
-          {/* 💡 提示（已多語） */}
+          {/* 💡 提示 */}
           <p className="text-xs text-gray-400 text-center">
             {t('growth.capture_moment')} 📸
           </p>
@@ -148,11 +163,11 @@ export function AddPhotoDialog({
               className="focus:ring-2 focus:ring-blue-400"
             />
           </div>
+
         </div>
 
-        {/* 🔘 按鈕 */}
+        {/* 🔘 按钮 */}
         <DialogFooter className="flex justify-between">
-
           <Button
             variant="destructive"
             className="text-white"
@@ -170,7 +185,6 @@ export function AddPhotoDialog({
               ? t('growth.uploading')
               : t('common.save')}
           </Button>
-
         </DialogFooter>
 
       </DialogContent>
